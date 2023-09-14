@@ -118,9 +118,9 @@ class Chip8 {
     this.memory[79] = 0b10000000;
   }
 
-
   // more detail instruction from site below
   // http://devernay.free.fr/hacks/chip8/C8TECH10.HTM
+  // VF is V[15]
   instructions(instruction) {
     if (instruction == 0x00e0) {
       // clears display
@@ -136,59 +136,131 @@ class Chip8 {
       this.SP -= 1;
     }
 
-    if (instruction & 0x1000) {
-      let nnn = instruction & 0x0111;
+    if (instruction >> 12 == 0x1) {
+      let nnn = instruction & 0x0fff;
 
       this.PC = nnn;
     }
 
-    if (instruction & 0x2000) {
+    if (instruction >> 12 == 0x2) {
       this.SP += 1;
       this.stack[this.SP] = this.PC;
 
-      let nnn = instruction & 0x0111;
+      let nnn = instruction & 0x0fff;
       this.PC = nnn;
     }
-    
-	if(instruction & 0x3000){
-	  let x = (instruction & 0x0100) >> 8;
-	  let kk = instruction & 0x0011;
-	  
-	  if(this.V[x] == kk) {
-		this.PC += 2;
-	  }
-    }
-	
-	if(instruction & 0x4000){
-	  let x = (instruction & 0x0100) >> 8;
-	  let kk = instruction & 0x0011;
-	  
-	  if(this.V[x] != kk) {
-		this.PC += 2;
-	  }
-    }
-	
-	if(instruction & 0x5000){
-	  let x = (instruction & 0x0100) >> 8;
-	  let y = (instruction & 0x0010) >> 4;
-	  
-	  if(this.V[x] == this.V[y]) {
-		this.PC += 2;
-	  }
+
+    if (instruction >> 12 == 0x3) {
+      let x = (instruction & 0x0f00) >> 8;
+      let kk = instruction & 0x00ff;
+
+      if (this.V[x] == kk) {
+        this.PC += 2;
+      }
     }
 
-	if(instruction & 0x6000){
-	  let x = (instruction & 0x0100) >> 8;
-	  let kk = instruction & 0x0011;
-	  
-	  this.V[x] = kk;
+    if (instruction >> 12 == 0x4) {
+      let x = (instruction & 0x0f00) >> 8;
+      let kk = instruction & 0x00ff;
+
+      if (this.V[x] != kk) {
+        this.PC += 2;
+      }
     }
 
-	if(instruction & 0x7000){
-	  let x = (instruction & 0x0100) >> 8;
-	  let kk = instruction & 0x0011;
-	
-	  this.V[x] = this.[x] + kk;
+    if (instruction >> 12 == 0x5) {
+      let x = (instruction & 0x0f00) >> 8;
+      let y = (instruction & 0x00f0) >> 4;
+
+      if (this.V[x] == this.V[y]) {
+        this.PC += 2;
+      }
+    }
+
+    if (instruction >> 12 == 0x6) {
+      let x = (instruction & 0x0f00) >> 8;
+      let kk = instruction & 0x00ff;
+
+      this.V[x] = kk;
+    }
+
+    if (instruction >> 12 == 0x7) {
+      let x = (instruction & 0x0f00) >> 8;
+      let kk = instruction & 0x00ff;
+
+      this.V[x] = this.V[x] + kk;
+    }
+
+    if (instruction >> 12 == 0x8) {
+      let x = (instruction & 0x0f00) >> 8;
+      let y = (instruction & 0x00f0) >> 4;
+      let fourthVal = instruction & 0x000f;
+
+      if (fourthVal == 0x0) {
+        this.V[x] = this.V[y];
+      }
+
+      if (fourthVal == 0x1) {
+        this.V[x] = this.V[x] | this.V[y];
+      }
+
+      if (fourthVal == 0x2) {
+        this.V[x] = this.V[x] & this.V[y];
+      }
+
+      if (fourthVal == 0x3) {
+        this.V[x] = this.V[x] ^ this.V[y];
+      }
+
+      if (fourthVal == 0x4) {
+        if (this.V[x] + this.V[y] > 255) {
+          this.V[15] = 1;
+        } else {
+          this.V[15] = 0;
+        }
+
+        this.V[x] = this.V[x] + this.V[y];
+      }
+
+      if (fourthVal == 0x5) {
+        if (this.V[x] > this.V[y]) {
+          V[15] = 1;
+        } else {
+          V[15] = 0;
+        }
+
+        this.V[x] = this.V[x] - this.V[y];
+      }
+
+      if (fourthVal == 0x6) {
+        if (this.V[x] & 1) {
+          this.V[15] = 1;
+        } else {
+          this.V[15] = 0;
+        }
+
+        this.V[x] = this.V[x] / 2;
+      }
+
+      if (fourthVal == 0x7) {
+        if (this.V[y] > this.V[x]) {
+          this.V[15] = 1;
+        } else {
+          this.V[15] = 0;
+        }
+
+        this.V[x] = this.V[y] - this.V[x];
+      }
+
+      if (fourthVal == 0xe) {
+        if (this.V[x] & 1) {
+          V[15] = 1;
+        } else {
+          V[15] = 0;
+        }
+
+        V[x] = V[x] * 2;
+      }
     }
   }
 }
