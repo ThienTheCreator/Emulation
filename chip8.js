@@ -13,7 +13,7 @@ class Chip8 {
     this.PC = new Uint16Array(1); // Program counter
     this.SP = new Uint8Array(1); // Stack pointer
     this.delay_reg = new Uint8Array(1); // Delay timer
-    this.sound_red = new Uint8Array(1); // Sound timer
+    this.sound_reg = new Uint8Array(1); // Sound timer
 
     this.framebuffer = Array(32)
       .fill()
@@ -122,8 +122,8 @@ class Chip8 {
   // http://devernay.free.fr/hacks/chip8/C8TECH10.HTM
   // VF is V[15]
   instructions(instruction) {
+	// clears display
     if (instruction == 0x00e0) {
-      // clears display
       for (let i = 0; i < 32; i++) {
         for (let j = 0; j < 64; j++) {
           this.framebuffer[i][j] = 0;
@@ -224,9 +224,9 @@ class Chip8 {
 
       if (fourthVal == 0x5) {
         if (this.V[x] > this.V[y]) {
-          V[15] = 1;
+          this.V[15] = 1;
         } else {
-          V[15] = 0;
+          this.V[15] = 0;
         }
 
         this.V[x] = this.V[x] - this.V[y];
@@ -254,12 +254,112 @@ class Chip8 {
 
       if (fourthVal == 0xe) {
         if (this.V[x] & 1) {
-          V[15] = 1;
+          this.V[15] = 1;
         } else {
-          V[15] = 0;
+          this.V[15] = 0;
         }
 
-        V[x] = V[x] * 2;
+        this.V[x] = this.V[x] * 2;
+      }
+    }
+
+    if ((instruction & 0xf00f) == 0x9000) {
+      let x = (instruction & 0x0f00) >> 8;
+      let y = (instruction & 0x00f0) >> 4;
+
+      if (this.V[x] != this.V[y]) {
+        this.PC += 2;
+      }
+    }
+
+    if ((instruction & 0xf000) == 0xa000) {
+      let nnn = instruction & 0x0fff;
+
+      this.I[0] = nnn;
+    }
+
+    if ((instruction & 0xf000) == 0xb000) {
+      let nnn = instruction & 0x0fff;
+
+      this.PC[0] = nnn + this.V[0];
+    }
+
+    if ((instruction & 0xf000) == 0xc000) {
+      let x = (instruction & 0x0f00) >> 8;
+      let kk = instruction & 0x00ff;
+
+      this.V[x] = Math.floor(Math.random() * 256) + kk;
+    }
+
+    // TODO
+    if ((instruction & 0xf000) == 0xd000) {
+      let x = (instruction & 0x0f00) >> 8;
+      let y = (instruction & 0x00f0) >> 4;
+      let n = instruction & 0x000f;
+
+      for (let i = 0; i < n; i++) {}
+    }
+
+    // TODO
+    if ((instruction & 0xf0ff) == 0xe09e) {
+    }
+
+    // TODO
+    if ((instruction & 0xf0ff) == 0xe0a1) {
+    }
+
+    if ((instruction & 0xf0ff) == 0xf007) {
+      let x = (instruction & 0x0f00) >> 8;
+
+      this.V[x] = this.delay_reg[0];
+    }
+
+    // TODO
+    if ((instruction & 0xf0ff) == 0xf00a) {
+    }
+
+    if ((instruction & 0xf0ff) == 0xf015) {
+      let x = (instruction & 0x0f00) >> 8;
+
+      this.delay_reg[0] = this.V[x];
+    }
+
+    if ((instruction & 0xf0ff) == 0xf018) {
+      let x = (instruction & 0x0f00) >> 8;
+
+      this.sound_reg = this.V[x];
+    }
+
+    if ((instruction & 0xf0ff) == 0xf01e) {
+      let x = (instruction & 0x0f00) >> 8;
+
+      this.I[0] += this.V[x];
+    }
+
+    // TODO
+    if ((instruction & 0xf0ff) == 0xf029) {
+      let x = (instruction & 0x0f00) >> 8;
+    }
+
+    if ((instruction & 0xf0ff) == 0xf033) {
+      let x = (instruction & 0x0f00) >> 8;
+
+      this.sound_reg = this.V[x];
+    }
+
+    if ((instruction & 0xf0ff) == 0xf055) {
+      let x = (instruction & 0x0f00) >> 8;
+
+      for (let i = 0; i <= x; i++) {
+        this.memory[this.I[0] + i] = this.V[i];
+      }
+    }
+
+    if ((instruction & 0xf0ff) == 0xf065) {
+      let x = (instruction & 0x0f00) >> 8;
+
+      for (let i = 0; i <= x; i++) {
+        this.V[i] = this.memory[this.I[0] + i];
       }
     }
   }

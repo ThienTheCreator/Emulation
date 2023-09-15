@@ -5,9 +5,34 @@
 	<script defer src="chip8.js"></script>
   </head>
   <body>
-	  <div style="height: 100vh; display: flex; justify-content: center; align-items: center;">
+	  <div style="height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center;">
     <canvas id="myCanvas"> </canvas>
-	<button onclick="soundTest()"></button>
+	<div>
+		<div>
+			<button value=1 onmousedown="mouseDown()" onmouseup="mouseUp()">1</button>
+			<button value=2 onmousedown="mouseDown()" onmouseup="mouseUp()">2</button>
+			<button value=3 onmousedown="mouseDown()" onmouseup="mouseUp()">3</button>
+			<button value=12 onmousedown="mouseDown()" onmouseup="mouseUp()">C</button>
+		</div>
+		<div>
+			<button value=4 onmousedown="mouseDown()" onmouseup="mouseUp()">4</button>
+			<button value=5 onmousedown="mouseDown()" onmouseup="mouseUp()">5</button>
+			<button value=6 onmousedown="mouseDown()" onmouseup="mouseUp()">6</button>
+			<button value=13 onmousedown="mouseDown()" onmouseup="mouseUp()">D</button>
+		</div>
+		<div>
+			<button value=7 onmousedown="mouseDown()" onmouseup="mouseUp()">7</button>
+			<button value=8 onmousedown="mouseDown()" onmouseup="mouseUp()">8</button>
+			<button value=9 onmousedown="mouseDown()" onmouseup="mouseUp()">9</button>
+			<button value=14 onmousedown="mouseDown()" onmouseup="mouseUp()">E</button>
+		</div>
+		<div>
+			<button value=10 onmousedown="mouseDown()" onmouseup="mouseUp()">A</button>
+			<button value=0 onmousedown="mouseDown()" onmouseup="mouseUp()">0</button>
+			<button value=11 onmousedown="mouseDown()" onmouseup="mouseUp()">B</button>
+			<button value=15 onmousedown="mouseDown()" onmouseup="mouseUp()">F</button>
+		</div>
+	</div>
   	</div>
   </body>
 </html>
