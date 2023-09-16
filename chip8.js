@@ -15,9 +15,7 @@ class Chip8 {
     this.delay_reg = new Uint8Array(1); // Delay timer
     this.sound_reg = new Uint8Array(1); // Sound timer
 
-    this.framebuffer = Array(32)
-      .fill()
-      .map(() => Array(64).fill(false));
+    this.framebuffer = Array(64 * 32).fill(false);
   }
 
   spriteSetup() {
@@ -118,83 +116,81 @@ class Chip8 {
     this.memory[79] = 0b10000000;
   }
 
-  // more detail instruction from site below
+  // more detail opcode from site below
   // http://devernay.free.fr/hacks/chip8/C8TECH10.HTM
   // VF is V[15]
-  instructions(instruction) {
+  instructions(opcode) {
 	// clears display
-    if (instruction == 0x00e0) {
-      for (let i = 0; i < 32; i++) {
-        for (let j = 0; j < 64; j++) {
-          this.framebuffer[i][j] = 0;
-        }
+    if (opcode == 0x00e0) {
+      for (let i = 0; i < 64 * 32; i++) {
+          this.framebuffer[i] = 0;
       }
     }
 
-    if (instruction == 0x00ee) {
+    if (opcode == 0x00ee) {
       this.PC = this.stack[this.SP];
       this.SP -= 1;
     }
 
-    if (instruction >> 12 == 0x1) {
-      let nnn = instruction & 0x0fff;
+    if (opcode >> 12 == 0x1) {
+      let nnn = opcode & 0x0fff;
 
       this.PC = nnn;
     }
 
-    if (instruction >> 12 == 0x2) {
+    if (opcode >> 12 == 0x2) {
       this.SP += 1;
       this.stack[this.SP] = this.PC;
 
-      let nnn = instruction & 0x0fff;
+      let nnn = opcode & 0x0fff;
       this.PC = nnn;
     }
 
-    if (instruction >> 12 == 0x3) {
-      let x = (instruction & 0x0f00) >> 8;
-      let kk = instruction & 0x00ff;
+    if (opcode >> 12 == 0x3) {
+      let x = (opcode & 0x0f00) >> 8;
+      let kk = opcode & 0x00ff;
 
       if (this.V[x] == kk) {
         this.PC += 2;
       }
     }
 
-    if (instruction >> 12 == 0x4) {
-      let x = (instruction & 0x0f00) >> 8;
-      let kk = instruction & 0x00ff;
+    if (opcode >> 12 == 0x4) {
+      let x = (opcode & 0x0f00) >> 8;
+      let kk = opcode & 0x00ff;
 
       if (this.V[x] != kk) {
         this.PC += 2;
       }
     }
 
-    if (instruction >> 12 == 0x5) {
-      let x = (instruction & 0x0f00) >> 8;
-      let y = (instruction & 0x00f0) >> 4;
+    if (opcode >> 12 == 0x5) {
+      let x = (opcode & 0x0f00) >> 8;
+      let y = (opcode & 0x00f0) >> 4;
 
       if (this.V[x] == this.V[y]) {
         this.PC += 2;
       }
     }
 
-    if (instruction >> 12 == 0x6) {
-      let x = (instruction & 0x0f00) >> 8;
-      let kk = instruction & 0x00ff;
+    if (opcode >> 12 == 0x6) {
+      let x = (opcode & 0x0f00) >> 8;
+      let kk = opcode & 0x00ff;
 
       this.V[x] = kk;
     }
 
-    if (instruction >> 12 == 0x7) {
-      let x = (instruction & 0x0f00) >> 8;
-      let kk = instruction & 0x00ff;
+    if (opcode >> 12 == 0x7) {
+      let x = (opcode & 0x0f00) >> 8;
+      let kk = opcode & 0x00ff;
 
       this.V[x] = this.V[x] + kk;
     }
 
-    if (instruction >> 12 == 0x8) {
-      let x = (instruction & 0x0f00) >> 8;
-      let y = (instruction & 0x00f0) >> 4;
-      let fourthVal = instruction & 0x000f;
+    if (opcode >> 12 == 0x8) {
+      let x = (opcode & 0x0f00) >> 8;
+      let y = (opcode & 0x00f0) >> 4;
+      let fourthVal = opcode & 0x000f;
 
       if (fourthVal == 0x0) {
         this.V[x] = this.V[y];
@@ -263,100 +259,117 @@ class Chip8 {
       }
     }
 
-    if ((instruction & 0xf00f) == 0x9000) {
-      let x = (instruction & 0x0f00) >> 8;
-      let y = (instruction & 0x00f0) >> 4;
+    if ((opcode & 0xf00f) == 0x9000) {
+      let x = (opcode & 0x0f00) >> 8;
+      let y = (opcode & 0x00f0) >> 4;
 
       if (this.V[x] != this.V[y]) {
         this.PC += 2;
       }
     }
 
-    if ((instruction & 0xf000) == 0xa000) {
-      let nnn = instruction & 0x0fff;
+    if ((opcode & 0xf000) == 0xa000) {
+      let nnn = opcode & 0x0fff;
 
       this.I[0] = nnn;
     }
 
-    if ((instruction & 0xf000) == 0xb000) {
-      let nnn = instruction & 0x0fff;
+    if ((opcode & 0xf000) == 0xb000) {
+      let nnn = opcode & 0x0fff;
 
       this.PC[0] = nnn + this.V[0];
     }
 
-    if ((instruction & 0xf000) == 0xc000) {
-      let x = (instruction & 0x0f00) >> 8;
-      let kk = instruction & 0x00ff;
+    if ((opcode & 0xf000) == 0xc000) {
+      let x = (opcode & 0x0f00) >> 8;
+      let kk = opcode & 0x00ff;
 
       this.V[x] = Math.floor(Math.random() * 256) + kk;
     }
 
     // TODO
-    if ((instruction & 0xf000) == 0xd000) {
-      let x = (instruction & 0x0f00) >> 8;
-      let y = (instruction & 0x00f0) >> 4;
-      let n = instruction & 0x000f;
+    if ((opcode & 0xf000) == 0xd000) {
+      let x = (opcode & 0x0f00) >> 8;
+      let y = (opcode & 0x00f0) >> 4;
+      let n = opcode & 0x000f;
 
-      for (let i = 0; i < n; i++) {}
+	  let row = this.V[x];
+	  let col = this.V[y];
+		
+	  this.V[15] = 0;
+      for (let i = 0; i < n; i++) {
+		let byte = this.memory[this.I[0] + i];
+		for(let j = 0; j < 8; j++){
+			let bit = byte >> (7 - j);
+			
+			let tempRow = (row + i) % 32;
+			let tempCol = (col + j) % 64;
+
+			bit ^= this.framebuffer[tempRow * 64 + tempCol];
+			if (bit != this.framebuffer[tempRow * 64 + tempCol]) {
+				this.V[15] = 1;
+			}
+		}
+	  }
     }
 
     // TODO
-    if ((instruction & 0xf0ff) == 0xe09e) {
+    if ((opcode & 0xf0ff) == 0xe09e) {
     }
 
     // TODO
-    if ((instruction & 0xf0ff) == 0xe0a1) {
+    if ((opcode & 0xf0ff) == 0xe0a1) {
     }
 
-    if ((instruction & 0xf0ff) == 0xf007) {
-      let x = (instruction & 0x0f00) >> 8;
+    if ((opcode & 0xf0ff) == 0xf007) {
+      let x = (opcode & 0x0f00) >> 8;
 
       this.V[x] = this.delay_reg[0];
     }
 
     // TODO
-    if ((instruction & 0xf0ff) == 0xf00a) {
+    if ((opcode & 0xf0ff) == 0xf00a) {
     }
 
-    if ((instruction & 0xf0ff) == 0xf015) {
-      let x = (instruction & 0x0f00) >> 8;
+    if ((opcode & 0xf0ff) == 0xf015) {
+      let x = (opcode & 0x0f00) >> 8;
 
       this.delay_reg[0] = this.V[x];
     }
 
-    if ((instruction & 0xf0ff) == 0xf018) {
-      let x = (instruction & 0x0f00) >> 8;
+    if ((opcode & 0xf0ff) == 0xf018) {
+      let x = (opcode & 0x0f00) >> 8;
 
       this.sound_reg = this.V[x];
     }
 
-    if ((instruction & 0xf0ff) == 0xf01e) {
-      let x = (instruction & 0x0f00) >> 8;
+    if ((opcode & 0xf0ff) == 0xf01e) {
+      let x = (opcode & 0x0f00) >> 8;
 
       this.I[0] += this.V[x];
     }
 
     // TODO
-    if ((instruction & 0xf0ff) == 0xf029) {
-      let x = (instruction & 0x0f00) >> 8;
+    if ((opcode & 0xf0ff) == 0xf029) {
+      let x = (opcode & 0x0f00) >> 8;
     }
 
-    if ((instruction & 0xf0ff) == 0xf033) {
-      let x = (instruction & 0x0f00) >> 8;
+    if ((opcode & 0xf0ff) == 0xf033) {
+      let x = (opcode & 0x0f00) >> 8;
 
       this.sound_reg = this.V[x];
     }
 
-    if ((instruction & 0xf0ff) == 0xf055) {
-      let x = (instruction & 0x0f00) >> 8;
+    if ((opcode & 0xf0ff) == 0xf055) {
+      let x = (opcode & 0x0f00) >> 8;
 
       for (let i = 0; i <= x; i++) {
         this.memory[this.I[0] + i] = this.V[i];
       }
     }
 
-    if ((instruction & 0xf0ff) == 0xf065) {
-      let x = (instruction & 0x0f00) >> 8;
+    if ((opcode & 0xf0ff) == 0xf065) {
+      let x = (opcode & 0x0f00) >> 8;
 
       for (let i = 0; i <= x; i++) {
         this.V[i] = this.memory[this.I[0] + i];
@@ -383,19 +396,31 @@ let data = imageData.data;
 // Data store color values in one contigous array
 // 4 indexes for RGBA
 // order is left to right and top to bottom
-function setPixel(row, col, scale, data) {
-  let index = 4 * scale * (row * canvasWidth + col);
+function setPixel(place, scale, colorValue) {
+  let index = 4 * scale * (Math.floor(place / 64) * canvasWidth + place % 64);
   let adjustValue = (canvasWidth - scale) * 4;
 
   for (let i = 0; i < scale; i++) {
     for (let j = 0; j < scale; j++) {
-      data[index] = 128;
-      data[index + 1] = 128;
-      data[index + 2] = 128;
+      data[index] = colorValue;
+      data[index + 1] = colorValue;
+      data[index + 2] = colorValue;
       index += 4;
     }
     index += adjustValue;
   }
+}
+
+function updateDisplay() {
+	for(let i = 0; i < 64 * 32; i++) {
+			if(chipEight.framebuffer[i]) {
+				setPixel(i, 10, 128);	
+			}else {
+				setPixel(i, 10, 0);
+			}
+	}
+
+	ctx.putImageData(imageData, 0, 0);
 }
 
 const wait = (ms) => new Promise((res) => setTimeout(res, ms));
@@ -413,7 +438,6 @@ function soundTest() {
 
 function main() {
   chipEight.spriteSetup();
-  chipEight.instructions(0x3100);
 }
 
 main();
