@@ -16,6 +16,8 @@ class Chip8 {
     this.sound_reg = new Uint8Array(1); // Sound timer
 
     this.framebuffer = Array(64 * 32).fill(false);
+
+	this.spriteSetup();
   }
 
   spriteSetup() {
@@ -293,19 +295,19 @@ class Chip8 {
       let y = (opcode & 0x00f0) >> 4;
       let n = opcode & 0x000f;
 
-	  let row = this.V[x];
-	  let col = this.V[y];
+	  let col = this.V[x];
+	  let row = this.V[y];
 		
 	  this.V[15] = 0;
-      for (let i = 0; i < n; i++) {
+      for (let i = 0; i <= n; i++) {
 		let byte = this.memory[this.I[0] + i];
 		for(let j = 0; j < 8; j++){
-			let bit = byte >> (7 - j);
+			let bit = (byte & (1 << (7 - j))) >> (7 - j);
 			
 			let tempRow = (row + i) % 32;
 			let tempCol = (col + j) % 64;
 
-			bit ^= this.framebuffer[tempRow * 64 + tempCol];
+			this.framebuffer[tempRow * 64 + tempCol] ^= bit;
 			if (bit != this.framebuffer[tempRow * 64 + tempCol]) {
 				this.V[15] = 1;
 			}
@@ -376,6 +378,24 @@ class Chip8 {
       }
     }
   }
+
+  async loadPong() {
+  	chipEight.spriteSetup();
+	
+	let response = await fetch('./PONG', {mode: 'no-cors'});
+	let result = await response.arrayBuffer();
+	let romData = new Uint8Array(result);
+		console.log(romData.length)
+	  for (let i = 0; i < romData.length; i++){
+		this.memory[0x0200 + i] =  romData[i];
+	  }
+
+	console.log(this.memory)
+  }
+}
+
+class CPU {
+	
 }
 
 let chipEight = new Chip8();
@@ -436,8 +456,32 @@ function soundTest() {
   osc.stop(context.currentTime + 0.2); // stop 2 seconds after the current time
 }
 
-function main() {
-  chipEight.spriteSetup();
+async function test() {
+	for (let i = 0; i < 246; i += 2){
+		let instruction = new Uint16Array(1);
+		instruction[0] = chipEight.memory[0x200 + i] << 8 + chipEight.memory[0x200 + i + 1];
+		console.log(instruction[0]);
+		console.log(instruction[0].toString(16));
+
+		chipEight.instructions(chipEight.memory[0x0200 + i] );
+		updateDisplay();
+		console.log("here")
+		await wait(1000);
+	}
 }
+
+function main() {
+  chipEight.V[0] = 62;
+  chipEight.V[1] = 0;
+  chipEight.instructions(0xd014);
+  updateDisplay();
+
+
+  chipEight.loadPong();
+
+  test();
+}
+
+
 
 main();
