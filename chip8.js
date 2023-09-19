@@ -130,22 +130,22 @@ class Chip8 {
     }
 
     if (opcode == 0x00ee) {
-      this.PC = this.stack[this.SP];
-      this.SP -= 1;
+      this.PC[0] = this.stack[this.SP];
+      this.SP[0] -= 1;
     }
 
     if (opcode >> 12 == 0x1) {
       let nnn = opcode & 0x0fff;
 
-      this.PC = nnn;
+      this.PC[0] = nnn;
     }
 
     if (opcode >> 12 == 0x2) {
-      this.SP += 1;
-      this.stack[this.SP] = this.PC;
+      this.SP[0] += 1;
+      this.stack[this.SP[0]] = this.PC[0];
 
       let nnn = opcode & 0x0fff;
-      this.PC = nnn;
+      this.PC[0] = nnn;
     }
 
     if (opcode >> 12 == 0x3) {
@@ -153,7 +153,7 @@ class Chip8 {
       let kk = opcode & 0x00ff;
 
       if (this.V[x] == kk) {
-        this.PC += 2;
+        this.PC[0] += 2;
       }
     }
 
@@ -162,7 +162,7 @@ class Chip8 {
       let kk = opcode & 0x00ff;
 
       if (this.V[x] != kk) {
-        this.PC += 2;
+        this.PC[0] += 2;
       }
     }
 
@@ -171,7 +171,7 @@ class Chip8 {
       let y = (opcode & 0x00f0) >> 4;
 
       if (this.V[x] == this.V[y]) {
-        this.PC += 2;
+        this.PC[0] += 2;
       }
     }
 
@@ -266,7 +266,7 @@ class Chip8 {
       let y = (opcode & 0x00f0) >> 4;
 
       if (this.V[x] != this.V[y]) {
-        this.PC += 2;
+        this.PC[0] += 2;
       }
     }
 
@@ -317,11 +317,13 @@ class Chip8 {
 
     // TODO
     if ((opcode & 0xf0ff) == 0xe09e) {
-    }
+    	chipEight.PC[0] += 2;
+	}
 
     // TODO
     if ((opcode & 0xf0ff) == 0xe0a1) {
-    }
+    	chipEight.PC[0] += 2;
+	}
 
     if ((opcode & 0xf0ff) == 0xf007) {
       let x = (opcode & 0x0f00) >> 8;
@@ -342,7 +344,7 @@ class Chip8 {
     if ((opcode & 0xf0ff) == 0xf018) {
       let x = (opcode & 0x0f00) >> 8;
 
-      this.sound_reg = this.V[x];
+      this.sound_reg[0] = this.V[x];
     }
 
     if ((opcode & 0xf0ff) == 0xf01e) {
@@ -354,12 +356,18 @@ class Chip8 {
     // TODO
     if ((opcode & 0xf0ff) == 0xf029) {
       let x = (opcode & 0x0f00) >> 8;
+		this.I[0] = 0;
+		console.log(this.V[x])
+		console.log("Here in 0xf029");
     }
 
+	  //TODO
     if ((opcode & 0xf0ff) == 0xf033) {
       let x = (opcode & 0x0f00) >> 8;
 
-      this.sound_reg = this.V[x];
+      this.memory[this.I[0]] = (this.V[x] / 100) % 10;
+	  this.memory[this.I[0] + 1] = (this.V[x] / 10) % 10;
+	  this.memory[this.I[0] + 2] = this.V[x] % 10;
     }
 
     if ((opcode & 0xf0ff) == 0xf055) {
@@ -457,23 +465,22 @@ function soundTest() {
 }
 
 async function test() {
-	for (let i = 0; i < 246; i += 2){
-		let instruction = new Uint16Array(1);
-		instruction[0] = chipEight.memory[0x200 + i] << 8 + chipEight.memory[0x200 + i + 1];
-		console.log(instruction[0]);
-		console.log(instruction[0].toString(16));
 
-		chipEight.instructions(chipEight.memory[0x0200 + i] );
+	chipEight.PC[0] = 0x200;
+	while (chipEight.PC <= chipEight.memory.length){
+		let instruction = new Uint16Array(1);
+		let i = chipEight.PC[0];
+		instruction[0] = (chipEight.memory[i] << 8) + chipEight.memory[i + 1];
+
+		chipEight.instructions(instruction[0]);
+		chipEight.PC[0] += 2;
+
 		updateDisplay();
-		console.log("here")
-		await wait(1000);
+		await wait(500);
 	}
 }
 
 function main() {
-  chipEight.V[0] = 62;
-  chipEight.V[1] = 0;
-  chipEight.instructions(0xd014);
   updateDisplay();
 
 
