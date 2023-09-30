@@ -17,7 +17,10 @@ class Chip8 {
 
     this.framebuffer = Array(64 * 32).fill(false);
 
+	this.key = "";
+
 	this.spriteSetup();
+	this.SP[0] = -1;
   }
 
   spriteSetup() {
@@ -125,19 +128,19 @@ class Chip8 {
 	// clears display
     if (opcode == 0x00e0) {
       for (let i = 0; i < 64 * 32; i++) {
-          this.framebuffer[i] = 0;
+          this.framebuffer[i] = false;
       }
     }
 
     if (opcode == 0x00ee) {
-      this.PC[0] = this.stack[this.SP];
+      this.PC[0] = this.stack[this.SP[0]];
       this.SP[0] -= 1;
     }
 
     if (opcode >> 12 == 0x1) {
       let nnn = opcode & 0x0fff;
 
-      this.PC[0] = nnn;
+      this.PC[0] = nnn - 2; 
     }
 
     if (opcode >> 12 == 0x2) {
@@ -145,13 +148,14 @@ class Chip8 {
       this.stack[this.SP[0]] = this.PC[0];
 
       let nnn = opcode & 0x0fff;
-      this.PC[0] = nnn;
+      this.PC[0] = nnn - 2;
     }
 
     if (opcode >> 12 == 0x3) {
       let x = (opcode & 0x0f00) >> 8;
       let kk = opcode & 0x00ff;
 
+		console.log(this.V[x], " ", kk)
       if (this.V[x] == kk) {
         this.PC[0] += 2;
       }
@@ -237,7 +241,7 @@ class Chip8 {
           this.V[15] = 0;
         }
 
-        this.V[x] = this.V[x] / 2;
+        this.V[x] = this.V[x] >> 1;
       }
 
       if (fourthVal == 0x7) {
@@ -279,17 +283,16 @@ class Chip8 {
     if ((opcode & 0xf000) == 0xb000) {
       let nnn = opcode & 0x0fff;
 
-      this.PC[0] = nnn + this.V[0];
+      this.PC[0] = nnn + this.V[0] - 2;
     }
 
     if ((opcode & 0xf000) == 0xc000) {
       let x = (opcode & 0x0f00) >> 8;
       let kk = opcode & 0x00ff;
 
-      this.V[x] = Math.floor(Math.random() * 256) + kk;
+      this.V[x] = Math.floor(Math.random() * 256) & kk;
     }
 
-    // TODO
     if ((opcode & 0xf000) == 0xd000) {
       let x = (opcode & 0x0f00) >> 8;
       let y = (opcode & 0x00f0) >> 4;
@@ -299,7 +302,7 @@ class Chip8 {
 	  let row = this.V[y];
 		
 	  this.V[15] = 0;
-      for (let i = 0; i <= n; i++) {
+      for (let i = 0; i < n; i++) {
 		let byte = this.memory[this.I[0] + i];
 		for(let j = 0; j < 8; j++){
 			let bit = (byte & (1 << (7 - j))) >> (7 - j);
@@ -315,14 +318,20 @@ class Chip8 {
 	  }
     }
 
-    // TODO
     if ((opcode & 0xf0ff) == 0xe09e) {
-    	chipEight.PC[0] += 2;
+		let x = (opcode & 0x0f00) >> 8;
+		
+		if(this.V[x] == this.key){
+    		chipEight.PC[0] += 2;
+		}
 	}
 
-    // TODO
     if ((opcode & 0xf0ff) == 0xe0a1) {
-    	chipEight.PC[0] += 2;
+		let x = (opcode & 0x0f00) >> 8;
+		
+		if(this.V[x] != this.key){
+    		chipEight.PC[0] += 2;
+		}
 	}
 
     if ((opcode & 0xf0ff) == 0xf007) {
@@ -333,6 +342,8 @@ class Chip8 {
 
     // TODO
     if ((opcode & 0xf0ff) == 0xf00a) {
+	  let x = (opcode & 0x0f00) >> 8;
+	  this.V[x] = 0;
     }
 
     if ((opcode & 0xf0ff) == 0xf015) {
@@ -350,30 +361,27 @@ class Chip8 {
     if ((opcode & 0xf0ff) == 0xf01e) {
       let x = (opcode & 0x0f00) >> 8;
 
-      this.I[0] += this.V[x];
+      this.I[0] = this.I[0] + this.V[x];
     }
 
-    // TODO
     if ((opcode & 0xf0ff) == 0xf029) {
       let x = (opcode & 0x0f00) >> 8;
-		this.I[0] = 0;
-		console.log(this.V[x])
-		console.log("Here in 0xf029");
+		this.I[0] = this.V[x] * 5;
+		console.log(this.V[x]);
     }
 
-	  //TODO
     if ((opcode & 0xf0ff) == 0xf033) {
       let x = (opcode & 0x0f00) >> 8;
 
-      this.memory[this.I[0]] = (this.V[x] / 100) % 10;
-	  this.memory[this.I[0] + 1] = (this.V[x] / 10) % 10;
-	  this.memory[this.I[0] + 2] = this.V[x] % 10;
+      this.memory[this.I[0]] = Math.floor(this.V[x] / 100) % 10;
+	  this.memory[this.I[0] + 1] = Math.floor(this.V[x] / 10) % 10;
+	  this.memory[this.I[0] + 2] = Math.floor(this.V[x]) % 10;
     }
 
     if ((opcode & 0xf0ff) == 0xf055) {
       let x = (opcode & 0x0f00) >> 8;
 
-      for (let i = 0; i <= x; i++) {
+      for (let i = 0; i < x; i++) {
         this.memory[this.I[0] + i] = this.V[i];
       }
     }
@@ -381,7 +389,7 @@ class Chip8 {
     if ((opcode & 0xf0ff) == 0xf065) {
       let x = (opcode & 0x0f00) >> 8;
 
-      for (let i = 0; i <= x; i++) {
+      for (let i = 0; i < x; i++) {
         this.V[i] = this.memory[this.I[0] + i];
       }
     }
@@ -393,12 +401,10 @@ class Chip8 {
 	let response = await fetch('./PONG', {mode: 'no-cors'});
 	let result = await response.arrayBuffer();
 	let romData = new Uint8Array(result);
-		console.log(romData.length)
 	  for (let i = 0; i < romData.length; i++){
 		this.memory[0x0200 + i] =  romData[i];
 	  }
 
-	console.log(this.memory)
   }
 }
 
@@ -464,6 +470,14 @@ function soundTest() {
   osc.stop(context.currentTime + 0.2); // stop 2 seconds after the current time
 }
 
+function mouseUp(){
+	chipEight.key = 0;
+}
+
+function mouseDown() {
+	chipEight.key = event.target.value;
+}
+
 async function test() {
 
 	chipEight.PC[0] = 0x200;
@@ -472,12 +486,25 @@ async function test() {
 		let i = chipEight.PC[0];
 		instruction[0] = (chipEight.memory[i] << 8) + chipEight.memory[i + 1];
 
+		console.log(instruction[0].toString(16));
+
 		chipEight.instructions(instruction[0]);
 		chipEight.PC[0] += 2;
 
 		updateDisplay();
-		await wait(500);
+		await wait(1);
+
+		timer();
 	}
+}
+
+async function timer() {
+	if(chipEight.delay_reg[0]){
+		chipEight.delay_reg[0] -= 1;
+	}else{
+		return;
+	}
+	await wait(16.7);
 }
 
 function main() {
