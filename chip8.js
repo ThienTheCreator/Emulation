@@ -17,10 +17,10 @@ class Chip8 {
 
     this.framebuffer = Array(64 * 32).fill(false);
 
-	this.key = "";
+    this.key = "";
 
-	this.spriteSetup();
-	this.SP[0] = -1;
+    this.spriteSetup();
+    this.SP[0] = -1;
   }
 
   spriteSetup() {
@@ -125,10 +125,10 @@ class Chip8 {
   // http://devernay.free.fr/hacks/chip8/C8TECH10.HTM
   // VF is V[15]
   instructions(opcode) {
-	// clears display
+    // clears display
     if (opcode == 0x00e0) {
       for (let i = 0; i < 64 * 32; i++) {
-          this.framebuffer[i] = false;
+        this.framebuffer[i] = false;
       }
     }
 
@@ -140,7 +140,7 @@ class Chip8 {
     if (opcode >> 12 == 0x1) {
       let nnn = opcode & 0x0fff;
 
-      this.PC[0] = nnn - 2; 
+      this.PC[0] = nnn - 2;
     }
 
     if (opcode >> 12 == 0x2) {
@@ -155,7 +155,7 @@ class Chip8 {
       let x = (opcode & 0x0f00) >> 8;
       let kk = opcode & 0x00ff;
 
-		console.log(this.V[x], " ", kk)
+      console.log(this.V[x], " ", kk);
       if (this.V[x] == kk) {
         this.PC[0] += 2;
       }
@@ -298,41 +298,41 @@ class Chip8 {
       let y = (opcode & 0x00f0) >> 4;
       let n = opcode & 0x000f;
 
-	  let col = this.V[x];
-	  let row = this.V[y];
-		
-	  this.V[15] = 0;
-      for (let i = 0; i < n; i++) {
-		let byte = this.memory[this.I[0] + i];
-		for(let j = 0; j < 8; j++){
-			let bit = (byte & (1 << (7 - j))) >> (7 - j);
-			
-			let tempRow = (row + i) % 32;
-			let tempCol = (col + j) % 64;
+      let col = this.V[x];
+      let row = this.V[y];
 
-			this.framebuffer[tempRow * 64 + tempCol] ^= bit;
-			if (bit != this.framebuffer[tempRow * 64 + tempCol]) {
-				this.V[15] = 1;
-			}
-		}
-	  }
+      this.V[15] = 0;
+      for (let i = 0; i < n; i++) {
+        let byte = this.memory[this.I[0] + i];
+        for (let j = 0; j < 8; j++) {
+          let bit = (byte & (1 << (7 - j))) >> (7 - j);
+
+          let tempRow = (row + i) % 32;
+          let tempCol = (col + j) % 64;
+
+          this.framebuffer[tempRow * 64 + tempCol] ^= bit;
+          if (bit != this.framebuffer[tempRow * 64 + tempCol]) {
+            this.V[15] = 1;
+          }
+        }
+      }
     }
 
     if ((opcode & 0xf0ff) == 0xe09e) {
-		let x = (opcode & 0x0f00) >> 8;
-		
-		if(this.V[x] == this.key){
-    		chipEight.PC[0] += 2;
-		}
-	}
+      let x = (opcode & 0x0f00) >> 8;
+
+      if (this.V[x] == this.key) {
+        chipEight.PC[0] += 2;
+      }
+    }
 
     if ((opcode & 0xf0ff) == 0xe0a1) {
-		let x = (opcode & 0x0f00) >> 8;
-		
-		if(this.V[x] != this.key){
-    		chipEight.PC[0] += 2;
-		}
-	}
+      let x = (opcode & 0x0f00) >> 8;
+
+      if (this.V[x] != this.key) {
+        chipEight.PC[0] += 2;
+      }
+    }
 
     if ((opcode & 0xf0ff) == 0xf007) {
       let x = (opcode & 0x0f00) >> 8;
@@ -342,8 +342,8 @@ class Chip8 {
 
     // TODO
     if ((opcode & 0xf0ff) == 0xf00a) {
-	  let x = (opcode & 0x0f00) >> 8;
-	  this.V[x] = 0;
+      let x = (opcode & 0x0f00) >> 8;
+      this.V[x] = 0;
     }
 
     if ((opcode & 0xf0ff) == 0xf015) {
@@ -366,16 +366,16 @@ class Chip8 {
 
     if ((opcode & 0xf0ff) == 0xf029) {
       let x = (opcode & 0x0f00) >> 8;
-		this.I[0] = this.V[x] * 5;
-		console.log(this.V[x]);
+      this.I[0] = this.V[x] * 5;
+      console.log(this.V[x]);
     }
 
     if ((opcode & 0xf0ff) == 0xf033) {
       let x = (opcode & 0x0f00) >> 8;
 
       this.memory[this.I[0]] = Math.floor(this.V[x] / 100) % 10;
-	  this.memory[this.I[0] + 1] = Math.floor(this.V[x] / 10) % 10;
-	  this.memory[this.I[0] + 2] = Math.floor(this.V[x]) % 10;
+      this.memory[this.I[0] + 1] = Math.floor(this.V[x] / 10) % 10;
+      this.memory[this.I[0] + 2] = Math.floor(this.V[x]) % 10;
     }
 
     if ((opcode & 0xf0ff) == 0xf055) {
@@ -394,23 +394,9 @@ class Chip8 {
       }
     }
   }
-
-  async loadPong() {
-  	chipEight.spriteSetup();
-	
-	let response = await fetch('./PONG', {mode: 'no-cors'});
-	let result = await response.arrayBuffer();
-	let romData = new Uint8Array(result);
-	  for (let i = 0; i < romData.length; i++){
-		this.memory[0x0200 + i] =  romData[i];
-	  }
-
-  }
 }
 
-class CPU {
-	
-}
+class CPU {}
 
 let chipEight = new Chip8();
 
@@ -431,7 +417,7 @@ let data = imageData.data;
 // 4 indexes for RGBA
 // order is left to right and top to bottom
 function setPixel(place, scale, colorValue) {
-  let index = 4 * scale * (Math.floor(place / 64) * canvasWidth + place % 64);
+  let index = 4 * scale * (Math.floor(place / 64) * canvasWidth + (place % 64));
   let adjustValue = (canvasWidth - scale) * 4;
 
   for (let i = 0; i < scale; i++) {
@@ -446,15 +432,15 @@ function setPixel(place, scale, colorValue) {
 }
 
 function updateDisplay() {
-	for(let i = 0; i < 64 * 32; i++) {
-			if(chipEight.framebuffer[i]) {
-				setPixel(i, 10, 128);	
-			}else {
-				setPixel(i, 10, 0);
-			}
-	}
+  for (let i = 0; i < 64 * 32; i++) {
+    if (chipEight.framebuffer[i]) {
+      setPixel(i, 10, 128);
+    } else {
+      setPixel(i, 10, 0);
+    }
+  }
 
-	ctx.putImageData(imageData, 0, 0);
+  ctx.putImageData(imageData, 0, 0);
 }
 
 const wait = (ms) => new Promise((res) => setTimeout(res, ms));
@@ -470,52 +456,56 @@ function soundTest() {
   osc.stop(context.currentTime + 0.2); // stop 2 seconds after the current time
 }
 
-function mouseUp(){
-	chipEight.key = 0;
+function mouseUp() {
+  chipEight.key = 0;
 }
 
 function mouseDown() {
-	chipEight.key = event.target.value;
+  chipEight.key = event.target.value;
 }
 
 async function test() {
+  chipEight.PC[0] = 0x200;
+  while (chipEight.PC <= chipEight.memory.length) {
+    let instruction = new Uint16Array(1);
+    let i = chipEight.PC[0];
+    console.log("PC", i);
+    console.log();
+    console.log(chipEight.memory);
+    instruction[0] = (chipEight.memory[i] << 8) + chipEight.memory[i + 1];
 
-	chipEight.PC[0] = 0x200;
-	while (chipEight.PC <= chipEight.memory.length){
-		let instruction = new Uint16Array(1);
-		let i = chipEight.PC[0];
-		instruction[0] = (chipEight.memory[i] << 8) + chipEight.memory[i + 1];
+    console.log(instruction[0].toString(16));
 
-		console.log(instruction[0].toString(16));
+    chipEight.instructions(instruction[0]);
+    chipEight.PC[0] += 2;
 
-		chipEight.instructions(instruction[0]);
-		chipEight.PC[0] += 2;
+    updateDisplay();
+    await wait(1);
 
-		updateDisplay();
-		await wait(1);
-
-		timer();
-	}
+    timer();
+  }
 }
 
-async function timer() {
-	if(chipEight.delay_reg[0]){
-		chipEight.delay_reg[0] -= 1;
-	}else{
-		return;
-	}
-	await wait(16.7);
+function timer() {
+  if (chipEight.delay_reg[0]) {
+    chipEight.delay_reg[0] -= 1;
+  }
+  if (chipEight.sound_reg[0]) {
+    chipEight.sound_reg[0] -= 1;
+  }
+  return;
 }
 
-function main() {
-  updateDisplay();
-
-
-  chipEight.loadPong();
+async function loadPong(button) {
+  button.disabled = true;
+  let response = await fetch("./PONG");
+  let result = await response.arrayBuffer();
+  let romData = new Uint8Array(result);
+  console.log(romData);
+  for (let i = 0; i < romData.length; i++) {
+    chipEight.memory[0x0200 + i] = romData[i];
+  }
 
   test();
+  soundTest();
 }
-
-
-
-main();
