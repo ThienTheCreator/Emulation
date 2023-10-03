@@ -1,0 +1,25 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+@font-face {
+    font-family: VT323;
+    src: url(VT323-Regular.ttf);
+}
+
+.title{
+  font-family: 'VT323', monospace;
+  font-size: 96px;
+}
+
+#myCanvas{
+  margin: 20px 
+}
+
+.key{
+  width: 64px;
+  height: 64px;
+}

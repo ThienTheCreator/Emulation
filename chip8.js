@@ -21,6 +21,8 @@ class Chip8 {
 
     this.spriteSetup();
     this.SP[0] = -1;
+	this.prevTime = 0;
+	this.soundPlayed = false;
   }
 
   spriteSetup() {
@@ -155,7 +157,6 @@ class Chip8 {
       let x = (opcode & 0x0f00) >> 8;
       let kk = opcode & 0x00ff;
 
-      console.log(this.V[x], " ", kk);
       if (this.V[x] == kk) {
         this.PC[0] += 2;
       }
@@ -367,7 +368,6 @@ class Chip8 {
     if ((opcode & 0xf0ff) == 0xf029) {
       let x = (opcode & 0x0f00) >> 8;
       this.I[0] = this.V[x] * 5;
-      console.log(this.V[x]);
     }
 
     if ((opcode & 0xf0ff) == 0xf033) {
@@ -445,15 +445,17 @@ function updateDisplay() {
 
 const wait = (ms) => new Promise((res) => setTimeout(res, ms));
 
-function soundTest() {
+
+function soundTest(cycle) {
   // one context per document
-  var context = new (window.AudioContext || window.webkitAudioContext)();
-  var osc = context.createOscillator(); // instantiate an oscillator
+  let context = new (window.AudioContext || window.webkitAudioContext)();
+  let osc = context.createOscillator(); // instantiate an oscillator
+  
   osc.type = "sine"; // this is the default - also square, sawtooth, triangle
   osc.frequency.value = 440; // Hz
   osc.connect(context.destination); // connect it to the destination
   osc.start(); // start the oscillator
-  osc.stop(context.currentTime + 0.2); // stop 2 seconds after the current time
+  osc.stop(context.currentTime + 0.016 * cycle); // stop 2 seconds after the current time
 }
 
 function mouseUp() {
@@ -469,12 +471,9 @@ async function test() {
   while (chipEight.PC <= chipEight.memory.length) {
     let instruction = new Uint16Array(1);
     let i = chipEight.PC[0];
-    console.log("PC", i);
-    console.log();
-    console.log(chipEight.memory);
-    instruction[0] = (chipEight.memory[i] << 8) + chipEight.memory[i + 1];
+    
+	instruction[0] = (chipEight.memory[i] << 8) + chipEight.memory[i + 1];
 
-    console.log(instruction[0].toString(16));
 
     chipEight.instructions(instruction[0]);
     chipEight.PC[0] += 2;
@@ -487,12 +486,33 @@ async function test() {
 }
 
 function timer() {
-  if (chipEight.delay_reg[0]) {
+  
+  if (!(chipEight.delay_reg[0] || chipEight.sound_reg)) {
+  	return;
+  }
+
+  let date = Date.now();
+  if(date - chipEight.prevTime >= 16){
+	chipEight.prevTime = date;
+  } else {
+	return;
+  }
+
+  if (chipEight.delay_reg[0] || chipEight.sound_reg) {
     chipEight.delay_reg[0] -= 1;
   }
+  
   if (chipEight.sound_reg[0]) {
     chipEight.sound_reg[0] -= 1;
+
+	if(!chipEight.soundPlayed){
+		soundTest(chipEight.sound_reg[0]);
+		chipEight.soundPlayed = true;
+	}
+  } else {
+	chipEight.soundPlayed = false;
   }
+
   return;
 }
 
@@ -501,11 +521,23 @@ async function loadPong(button) {
   let response = await fetch("./PONG");
   let result = await response.arrayBuffer();
   let romData = new Uint8Array(result);
-  console.log(romData);
+  
   for (let i = 0; i < romData.length; i++) {
     chipEight.memory[0x0200 + i] = romData[i];
   }
 
   test();
-  soundTest();
 }
+
+window.addEventListener("keydown", e => {
+    let key = e.key;
+    if(key.length == 1) {
+		if(('0' <= key && key <= '9') || ('a' <= key && key <= 'f')){
+			chipEight.key = key;
+		}
+    }
+});
+
+window.addEventListener("keyup", e => {
+	chipEight.key = "";
+})

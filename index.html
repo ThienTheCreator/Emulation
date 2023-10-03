@@ -1,39 +1,74 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <title>Sample page</title>
-	<script defer src="chip8.js"></script>
+    <link rel="stylesheet" href="VT323-Regular.ttf" />
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="chip8.js"></script>
   </head>
   <body>
-	  <div style="height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center;"> <h1>CHIP 8</h1>
-		  <button onclick="loadPong(this)">Play Pong</button>
-    <canvas id="myCanvas"> </canvas>
-	<div>
-		<div>
-			<button value=1 onmousedown="mouseDown()" onmouseup="mouseUp()">1</button>
-			<button value=2 onmousedown="mouseDown()" onmouseup="mouseUp()">2</button>
-			<button value=3 onmousedown="mouseDown()" onmouseup="mouseUp()">3</button>
-			<button value=12 onmousedown="mouseDown()" onmouseup="mouseUp()">C</button>
-		</div>
-		<div>
-			<button value=4 onmousedown="mouseDown()" onmouseup="mouseUp()">4</button>
-			<button value=5 onmousedown="mouseDown()" onmouseup="mouseUp()">5</button>
-			<button value=6 onmousedown="mouseDown()" onmouseup="mouseUp()">6</button>
-			<button value=13 onmousedown="mouseDown()" onmouseup="mouseUp()">D</button>
-		</div>
-		<div>
-			<button value=7 onmousedown="mouseDown()" onmouseup="mouseUp()">7</button>
-			<button value=8 onmousedown="mouseDown()" onmouseup="mouseUp()">8</button>
-			<button value=9 onmousedown="mouseDown()" onmouseup="mouseUp()">9</button>
-			<button value=14 onmousedown="mouseDown()" onmouseup="mouseUp()">E</button>
-		</div>
-		<div>
-			<button value=10 onmousedown="mouseDown()" onmouseup="mouseUp()">A</button>
-			<button value=0 onmousedown="mouseDown()" onmouseup="mouseUp()">0</button>
-			<button value=11 onmousedown="mouseDown()" onmouseup="mouseUp()">B</button>
-			<button value=15 onmousedown="mouseDown()" onmouseup="mouseUp()">F</button>
-		</div>
-	</div>
-  	</div>
+    <div class="container">
+      <h1 class="title">CHIP 8</h1>
+      <button onclick="loadPong(this)">Play Pong</button>
+      <canvas id="myCanvas"> </canvas>
+      <div>
+        <div>
+          <button class="key" value="1" onmousedown="mouseDown()" onmouseup="mouseUp()">
+            1
+          </button>
+          <button class="key" value="2" onmousedown="mouseDown()" onmouseup="mouseUp()">
+            2
+          </button>
+          <button class="key" value="3" onmousedown="mouseDown()" onmouseup="mouseUp()">
+            3
+          </button>
+          <button class="key" value="12" onmousedown="mouseDown()" onmouseup="mouseUp()">
+            C
+          </button>
+        </div>
+        <div>
+          <button class="key" value="4" onmousedown="mouseDown()" onmouseup="mouseUp()">
+            4
+          </button>
+          <button class="key" value="5" onmousedown="mouseDown()" onmouseup="mouseUp()">
+            5
+          </button>
+          <button class="key" value="6" onmousedown="mouseDown()" onmouseup="mouseUp()">
+            6
+          </button>
+          <button class="key" value="13" onmousedown="mouseDown()" onmouseup="mouseUp()">
+            D
+          </button>
+        </div>
+        <div>
+          <button class="key" value="7" onmousedown="mouseDown()" onmouseup="mouseUp()">
+            7
+          </button>
+          <button class="key" value="8" onmousedown="mouseDown()" onmouseup="mouseUp()">
+            8
+          </button>
+          <button class="key" value="9" onmousedown="mouseDown()" onmouseup="mouseUp()">
+            9
+          </button>
+          <button class="key" value="14" onmousedown="mouseDown()" onmouseup="mouseUp()">
+            E
+          </button>
+        </div>
+        <div>
+          <button class="key" value="10" onmousedown="mouseDown()" onmouseup="mouseUp()">
+            A
+          </button>
+          <button class="key" value="0" onmousedown="mouseDown()" onmouseup="mouseUp()">
+            0
+          </button>
+          <button class="key" value="11" onmousedown="mouseDown()" onmouseup="mouseUp()">
+            B
+          </button>
+          <button class="key" value="15" onmousedown="mouseDown()" onmouseup="mouseUp()">
+            F
+          </button>
+        </div>
+      </div>
+    </div>
   </body>
 </html>
