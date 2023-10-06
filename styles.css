@@ -13,13 +13,27 @@
 .title{
   font-family: 'VT323', monospace;
   font-size: 96px;
+  margin: 10px;
+}
+
+.optionBtn{
+  width: 120px;
+  height: 30px;
+  margin: 10px;
 }
 
 #myCanvas{
-  margin: 20px 
+  margin: 20px;
+}
+
+.keyRow{
+  font-size: 0;
 }
 
 .key{
   width: 64px;
   height: 64px;
+  font-size: 30px;
+  font-weight: bold;
+  margin: 5px;
 }

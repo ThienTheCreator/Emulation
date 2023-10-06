@@ -21,8 +21,10 @@ class Chip8 {
 
     this.spriteSetup();
     this.SP[0] = -1;
-	this.prevTime = 0;
-	this.soundPlayed = false;
+    this.prevTime = 0;
+	this.hasSound = false;  
+    this.soundPlayed = false;
+	this.continueStep = true;
   }
 
   spriteSetup() {
@@ -127,6 +129,8 @@ class Chip8 {
   // http://devernay.free.fr/hacks/chip8/C8TECH10.HTM
   // VF is V[15]
   instructions(opcode) {
+	this.continueStep = true;
+
     // clears display
     if (opcode == 0x00e0) {
       for (let i = 0; i < 64 * 32; i++) {
@@ -142,7 +146,8 @@ class Chip8 {
     if (opcode >> 12 == 0x1) {
       let nnn = opcode & 0x0fff;
 
-      this.PC[0] = nnn - 2;
+      this.PC[0] = nnn;
+	  this.continueStep = false;
     }
 
     if (opcode >> 12 == 0x2) {
@@ -150,7 +155,8 @@ class Chip8 {
       this.stack[this.SP[0]] = this.PC[0];
 
       let nnn = opcode & 0x0fff;
-      this.PC[0] = nnn - 2;
+      this.PC[0] = nnn;
+	  this.continueStep = false;
     }
 
     if (opcode >> 12 == 0x3) {
@@ -284,7 +290,8 @@ class Chip8 {
     if ((opcode & 0xf000) == 0xb000) {
       let nnn = opcode & 0x0fff;
 
-      this.PC[0] = nnn + this.V[0] - 2;
+      this.PC[0] = nnn + this.V[0];
+	  this.continueStep = false;
     }
 
     if ((opcode & 0xf000) == 0xc000) {
@@ -344,7 +351,12 @@ class Chip8 {
     // TODO
     if ((opcode & 0xf0ff) == 0xf00a) {
       let x = (opcode & 0x0f00) >> 8;
-      this.V[x] = 0;
+      
+	  if(this.key){		
+		this.V[x] = this.key;
+	  }else{
+        this.continueStep = false;
+	  }
     }
 
     if ((opcode & 0xf0ff) == 0xf015) {
@@ -381,7 +393,7 @@ class Chip8 {
     if ((opcode & 0xf0ff) == 0xf055) {
       let x = (opcode & 0x0f00) >> 8;
 
-      for (let i = 0; i < x; i++) {
+      for (let i = 0; i <= x; i++) {
         this.memory[this.I[0] + i] = this.V[i];
       }
     }
@@ -389,14 +401,12 @@ class Chip8 {
     if ((opcode & 0xf0ff) == 0xf065) {
       let x = (opcode & 0x0f00) >> 8;
 
-      for (let i = 0; i < x; i++) {
+      for (let i = 0; i <= x; i++) {
         this.V[i] = this.memory[this.I[0] + i];
       }
     }
   }
 }
-
-class CPU {}
 
 let chipEight = new Chip8();
 
@@ -445,13 +455,12 @@ function updateDisplay() {
 
 const wait = (ms) => new Promise((res) => setTimeout(res, ms));
 
-
 function soundTest(cycle) {
   // one context per document
   let context = new (window.AudioContext || window.webkitAudioContext)();
   let osc = context.createOscillator(); // instantiate an oscillator
-  
-  osc.type = "sine"; // this is the default - also square, sawtooth, triangle
+
+  osc.type = "triangle"; // this is the default - also square, sawtooth, triangle
   osc.frequency.value = 440; // Hz
   osc.connect(context.destination); // connect it to the destination
   osc.start(); // start the oscillator
@@ -471,12 +480,14 @@ async function test() {
   while (chipEight.PC <= chipEight.memory.length) {
     let instruction = new Uint16Array(1);
     let i = chipEight.PC[0];
-    
-	instruction[0] = (chipEight.memory[i] << 8) + chipEight.memory[i + 1];
 
+    instruction[0] = (chipEight.memory[i] << 8) + chipEight.memory[i + 1];
 
     chipEight.instructions(instruction[0]);
-    chipEight.PC[0] += 2;
+	
+	if(chipEight.continueStep){
+      chipEight.PC[0] += 2;
+	}
 
     updateDisplay();
     await wait(1);
@@ -486,31 +497,32 @@ async function test() {
 }
 
 function timer() {
-  
   if (!(chipEight.delay_reg[0] || chipEight.sound_reg)) {
-  	return;
+    return;
   }
 
   let date = Date.now();
-  if(date - chipEight.prevTime >= 16){
-	chipEight.prevTime = date;
+  if (date - chipEight.prevTime >= 10) {
+    chipEight.prevTime = date;
   } else {
-	return;
+    return;
   }
 
   if (chipEight.delay_reg[0] || chipEight.sound_reg) {
     chipEight.delay_reg[0] -= 1;
   }
-  
+
   if (chipEight.sound_reg[0]) {
     chipEight.sound_reg[0] -= 1;
 
-	if(!chipEight.soundPlayed){
-		soundTest(chipEight.sound_reg[0]);
-		chipEight.soundPlayed = true;
-	}
+    if (!chipEight.soundPlayed) {
+	  if(chipEight.hasSound){
+      	soundTest(chipEight.sound_reg[0]);
+	  }
+      chipEight.soundPlayed = true;
+    }
   } else {
-	chipEight.soundPlayed = false;
+    chipEight.soundPlayed = false;
   }
 
   return;
@@ -521,7 +533,7 @@ async function loadPong(button) {
   let response = await fetch("./PONG");
   let result = await response.arrayBuffer();
   let romData = new Uint8Array(result);
-  
+
   for (let i = 0; i < romData.length; i++) {
     chipEight.memory[0x0200 + i] = romData[i];
   }
@@ -529,15 +541,26 @@ async function loadPong(button) {
   test();
 }
 
-window.addEventListener("keydown", e => {
-    let key = e.key;
-    if(key.length == 1) {
-		if(('0' <= key && key <= '9') || ('a' <= key && key <= 'f')){
-			chipEight.key = key;
-		}
+window.addEventListener("keydown", (e) => {
+  let key = e.key;
+  if (key.length == 1) {
+    if (("0" <= key && key <= "9") || ("a" <= key && key <= "f")) {
+      chipEight.key = parseInt(key, 16);
     }
+  }
 });
 
-window.addEventListener("keyup", e => {
-	chipEight.key = "";
-})
+window.addEventListener("keyup", (e) => {
+  chipEight.key = "";
+});
+
+function toggleSound(){
+	let soundButton = document.getElementById("soundButton");
+	if(chipEight.hasSound){
+		chipEight.hasSound = false;
+		soundButton.innerHTML = "Sound: Off"
+	} else {
+		chipEight.hasSound = true;
+		soundButton.innerHTML = "Sound: On"
+	}
+}

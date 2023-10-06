@@ -1,18 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Sample page</title>
-    <link rel="stylesheet" href="VT323-Regular.ttf" />
+    <title>Chip8</title>
     <link rel="stylesheet" href="styles.css" />
     <script defer src="chip8.js"></script>
   </head>
   <body>
     <div class="container">
       <h1 class="title">CHIP 8</h1>
-      <button onclick="loadPong(this)">Play Pong</button>
-      <canvas id="myCanvas"> </canvas>
+	  <div>
+        <button class="optionBtn" id="soundButton" onclick="toggleSound()">Sound: Off</button>
+        <button class="optionBtn" onclick="loadPong(this)">Play Pong</button>
+	  </div>
+	  <canvas id="myCanvas"> </canvas>
       <div>
-        <div>
+        <div class="keyRow">
           <button class="key" value="1" onmousedown="mouseDown()" onmouseup="mouseUp()">
             1
           </button>
@@ -26,7 +28,7 @@
             C
           </button>
         </div>
-        <div>
+        <div class="keyRow">
           <button class="key" value="4" onmousedown="mouseDown()" onmouseup="mouseUp()">
             4
           </button>
@@ -40,7 +42,7 @@
             D
           </button>
         </div>
-        <div>
+        <div class="keyRow">
           <button class="key" value="7" onmousedown="mouseDown()" onmouseup="mouseUp()">
             7
           </button>
@@ -54,7 +56,7 @@
             E
           </button>
         </div>
-        <div>
+        <div class="keyRow">
           <button class="key" value="10" onmousedown="mouseDown()" onmouseup="mouseUp()">
             A
           </button>
