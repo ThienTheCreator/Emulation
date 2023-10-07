@@ -20,11 +20,12 @@ class Chip8 {
     this.key = "";
 
     this.spriteSetup();
-    this.SP[0] = -1;
+    this.SP[0] = 0;
     this.prevTime = 0;
 	this.hasSound = false;  
     this.soundPlayed = false;
 	this.continueStep = true;
+	this.hasExited = false;
   }
 
   spriteSetup() {
@@ -129,6 +130,7 @@ class Chip8 {
   // http://devernay.free.fr/hacks/chip8/C8TECH10.HTM
   // VF is V[15]
   instructions(opcode) {
+	console.log(opcode.toString(16))
 	this.continueStep = true;
 
     // clears display
@@ -143,14 +145,14 @@ class Chip8 {
       this.SP[0] -= 1;
     }
 
-    if (opcode >> 12 == 0x1) {
+    if ((opcode & 0xf000) == 0x1000) {
       let nnn = opcode & 0x0fff;
 
       this.PC[0] = nnn;
 	  this.continueStep = false;
     }
 
-    if (opcode >> 12 == 0x2) {
+    if ((opcode & 0xf000) == 0x2000) {
       this.SP[0] += 1;
       this.stack[this.SP[0]] = this.PC[0];
 
@@ -159,7 +161,7 @@ class Chip8 {
 	  this.continueStep = false;
     }
 
-    if (opcode >> 12 == 0x3) {
+    if ((opcode & 0xf000) == 0x3000) {
       let x = (opcode & 0x0f00) >> 8;
       let kk = opcode & 0x00ff;
 
@@ -168,7 +170,7 @@ class Chip8 {
       }
     }
 
-    if (opcode >> 12 == 0x4) {
+    if ((opcode & 0xf000) == 0x4000) {
       let x = (opcode & 0x0f00) >> 8;
       let kk = opcode & 0x00ff;
 
@@ -177,7 +179,7 @@ class Chip8 {
       }
     }
 
-    if (opcode >> 12 == 0x5) {
+    if ((opcode & 0xf00f) == 0x5000) {
       let x = (opcode & 0x0f00) >> 8;
       let y = (opcode & 0x00f0) >> 4;
 
@@ -186,21 +188,25 @@ class Chip8 {
       }
     }
 
-    if (opcode >> 12 == 0x6) {
+    if ((opcode & 0xf000) == 0x6000) {
       let x = (opcode & 0x0f00) >> 8;
       let kk = opcode & 0x00ff;
 
       this.V[x] = kk;
     }
 
-    if (opcode >> 12 == 0x7) {
+    if ((opcode & 0xf000) == 0x7000) {
       let x = (opcode & 0x0f00) >> 8;
       let kk = opcode & 0x00ff;
 
-      this.V[x] = this.V[x] + kk;
+	  if(this.V[x] + kk > 255){
+		this.V[x] = this.V[x] + kk - 256;
+	  } else {
+        this.V[x] = this.V[x] + kk;
+	  }
     }
 
-    if (opcode >> 12 == 0x8) {
+    if ((opcode & 0xf000) == 0x8000) {
       let x = (opcode & 0x0f00) >> 8;
       let y = (opcode & 0x00f0) >> 4;
       let fourthVal = opcode & 0x000f;
@@ -224,21 +230,21 @@ class Chip8 {
       if (fourthVal == 0x4) {
         if (this.V[x] + this.V[y] > 255) {
           this.V[15] = 1;
+          this.V[x] = this.V[x] + this.V[y] - 256;
         } else {
           this.V[15] = 0;
+          this.V[x] = this.V[x] + this.V[y];
         }
-
-        this.V[x] = this.V[x] + this.V[y];
       }
 
       if (fourthVal == 0x5) {
-        if (this.V[x] > this.V[y]) {
+        if (this.V[x] >= this.V[y]) {
           this.V[15] = 1;
+		  this.V[x] = this.V[x] - this.V[y];
         } else {
           this.V[15] = 0;
+		  this.V[x] = this.V[x] - this.V[y] + 256;
         }
-
-        this.V[x] = this.V[x] - this.V[y];
       }
 
       if (fourthVal == 0x6) {
@@ -252,23 +258,23 @@ class Chip8 {
       }
 
       if (fourthVal == 0x7) {
-        if (this.V[y] > this.V[x]) {
+        if (this.V[y] >= this.V[x]) {
           this.V[15] = 1;
+          this.V[x] = this.V[y] - this.V[x];
         } else {
           this.V[15] = 0;
+		  this.V[x] = this.V[y] - this.V[x] + 256; 
         }
-
-        this.V[x] = this.V[y] - this.V[x];
       }
 
       if (fourthVal == 0xe) {
-        if (this.V[x] & 1) {
+        if (this.V[x] >> 7) {
           this.V[15] = 1;
         } else {
           this.V[15] = 0;
         }
 
-        this.V[x] = this.V[x] * 2;
+        this.V[x] = (this.V[x] << 1) & 0xffff;
       }
     }
 
@@ -318,8 +324,9 @@ class Chip8 {
           let tempRow = (row + i) % 32;
           let tempCol = (col + j) % 64;
 
+		  let tempPixel = this.framebuffer[tempRow * 64 + tempCol];
           this.framebuffer[tempRow * 64 + tempCol] ^= bit;
-          if (bit != this.framebuffer[tempRow * 64 + tempCol]) {
+          if (tempPixel == true && this.framebuffer[tempRow * 64 + tempCol] == 0) {
             this.V[15] = 1;
           }
         }
@@ -348,7 +355,6 @@ class Chip8 {
       this.V[x] = this.delay_reg[0];
     }
 
-    // TODO
     if ((opcode & 0xf0ff) == 0xf00a) {
       let x = (opcode & 0x0f00) >> 8;
       
@@ -387,7 +393,7 @@ class Chip8 {
 
       this.memory[this.I[0]] = Math.floor(this.V[x] / 100) % 10;
       this.memory[this.I[0] + 1] = Math.floor(this.V[x] / 10) % 10;
-      this.memory[this.I[0] + 2] = Math.floor(this.V[x]) % 10;
+      this.memory[this.I[0] + 2] = this.V[x] % 10;
     }
 
     if ((opcode & 0xf0ff) == 0xf055) {
@@ -477,7 +483,11 @@ function mouseDown() {
 
 async function test() {
   chipEight.PC[0] = 0x200;
-  while (chipEight.PC <= chipEight.memory.length) {
+  while (chipEight.PC[0] <= chipEight.memory.length) {
+	if(chipEight.hasExited){
+	  return;
+	}
+
     let instruction = new Uint16Array(1);
     let i = chipEight.PC[0];
 
@@ -497,7 +507,7 @@ async function test() {
 }
 
 function timer() {
-  if (!(chipEight.delay_reg[0] || chipEight.sound_reg)) {
+  if (!(chipEight.delay_reg[0] || chipEight.sound_reg[0])) {
     return;
   }
 
@@ -508,7 +518,7 @@ function timer() {
     return;
   }
 
-  if (chipEight.delay_reg[0] || chipEight.sound_reg) {
+  if (chipEight.delay_reg[0]) {
     chipEight.delay_reg[0] -= 1;
   }
 
@@ -528,7 +538,25 @@ function timer() {
   return;
 }
 
+function resetEmulator() {
+  chipEight.hasExited = true;
+	
+  let romBtn = document.getElementsByClassName("romBtn");
+  for(let i = 0; i < romBtn.length; i++){
+    romBtn[i].disabled = false;
+  }
+
+  for(let i = 0; i < chipEight.framebuffer.length; i++){
+    chipEight.framebuffer[i] = false;
+  }
+
+  for(let i = 0x200; i < 4096; i++){
+	chipEight.memory[i] = 0;
+  }
+}
+
 async function loadPong(button) {
+  resetEmulator();
   button.disabled = true;
   let response = await fetch("./PONG");
   let result = await response.arrayBuffer();
@@ -538,6 +566,26 @@ async function loadPong(button) {
     chipEight.memory[0x0200 + i] = romData[i];
   }
 
+  await wait(100);
+ 
+  chipEight.hasExited = false;
+  test();
+}
+
+async function loadTetris(button) {
+  resetEmulator();
+  button.disabled = true;
+  let response = await fetch("./TETRIS");
+  let result = await response.arrayBuffer();
+  let romData = new Uint8Array(result);
+
+  for (let i = 0; i < romData.length; i++) {
+    chipEight.memory[0x0200 + i] = romData[i];
+  }
+  
+  await wait(100);
+  
+  chipEight.hasExited = false;
   test();
 }
 

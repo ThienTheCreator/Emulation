@@ -16,7 +16,13 @@
   margin: 10px;
 }
 
-.optionBtn{
+.soundBtn{
+  width: 120px;
+  height: 30px;
+  margin: 10px;
+}
+
+.romBtn{
   width: 120px;
   height: 30px;
   margin: 10px;

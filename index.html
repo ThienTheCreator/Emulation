@@ -9,8 +9,9 @@
     <div class="container">
       <h1 class="title">CHIP 8</h1>
 	  <div>
-        <button class="optionBtn" id="soundButton" onclick="toggleSound()">Sound: Off</button>
-        <button class="optionBtn" onclick="loadPong(this)">Play Pong</button>
+        <button class="soundBtn" id="soundButton" onclick="toggleSound()">Sound: Off</button>
+        <button class="romBtn" onclick="loadPong(this)">Play Pong</button>
+		<button class="romBtn" onclick="loadTetris(this)">Play Tetris</button>
 	  </div>
 	  <canvas id="myCanvas"> </canvas>
       <div>
