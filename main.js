@@ -2,6 +2,7 @@ let chipEight = new Chip8();
 
 let canvas = document.getElementById("myCanvas");
 
+// one pixel is actually scale * scale pixels
 let scale = 10;
 const canvasWidth = 64 * scale;
 const canvasHeight = 32 * scale;
@@ -11,6 +12,11 @@ canvas.height = canvasHeight;
 let ctx = canvas.getContext("2d", { alpha: false });
 let imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
 let data = imageData.data;
+
+let hasExited = false;
+let prevTime = 0;
+let hasSound = false;
+let soundPlayed = false;
 
 // Function to set indiviual pixels
 // Data store color values in one contigous array
@@ -68,16 +74,12 @@ function mouseDown() {
 async function test() {
   chipEight.PC[0] = 0x200;
   while (chipEight.PC[0] <= chipEight.memory.length) {
-	if(chipEight.hasExited){
-	  return;
-	}
+    if (hasExited) {
+      return;
+    }
 
     let opcode = chipEight.getOpcode();
     chipEight.executeOpcode(opcode);
-	
-	if(chipEight.continueStep){
-      chipEight.PC[0] += 2;
-	}
 
     updateDisplay();
     await wait(1);
@@ -92,8 +94,8 @@ function timer() {
   }
 
   let date = Date.now();
-  if (date - chipEight.prevTime >= 10) {
-    chipEight.prevTime = date;
+  if (date - prevTime >= 1) {
+    prevTime = date;
   } else {
     return;
   }
@@ -105,33 +107,33 @@ function timer() {
   if (chipEight.sound_reg[0]) {
     chipEight.sound_reg[0] -= 1;
 
-    if (!chipEight.soundPlayed) {
-	  if(chipEight.hasSound){
-      	soundTest(chipEight.sound_reg[0]);
-	  }
-      chipEight.soundPlayed = true;
+    if (!soundPlayed) {
+      if (hasSound) {
+        soundTest(chipEight.sound_reg[0]);
+      }
+      soundPlayed = true;
     }
   } else {
-    chipEight.soundPlayed = false;
+    soundPlayed = false;
   }
 
   return;
 }
 
 function resetEmulator() {
-  chipEight.hasExited = true;
-	
+  hasExited = true;
+
   let romBtn = document.getElementsByClassName("romBtn");
-  for(let i = 0; i < romBtn.length; i++){
+  for (let i = 0; i < romBtn.length; i++) {
     romBtn[i].disabled = false;
   }
 
-  for(let i = 0; i < chipEight.framebuffer.length; i++){
+  for (let i = 0; i < chipEight.framebuffer.length; i++) {
     chipEight.framebuffer[i] = false;
   }
 
-  for(let i = 0x200; i < 4096; i++){
-	chipEight.memory[i] = 0;
+  for (let i = 0x200; i < 4096; i++) {
+    chipEight.memory[i] = 0;
   }
 }
 
@@ -146,9 +148,9 @@ async function loadPong(button) {
     chipEight.memory[0x0200 + i] = romData[i];
   }
 
-  await wait(100);
- 
-  chipEight.hasExited = false;
+  await wait(1);
+
+  hasExited = false;
   test();
 }
 
@@ -162,10 +164,10 @@ async function loadTetris(button) {
   for (let i = 0; i < romData.length; i++) {
     chipEight.memory[0x0200 + i] = romData[i];
   }
-  
-  await wait(100);
-  
-  chipEight.hasExited = false;
+
+  await wait(1);
+
+  hasExited = false;
   test();
 }
 
@@ -182,13 +184,13 @@ window.addEventListener("keyup", (e) => {
   chipEight.key = "";
 });
 
-function toggleSound(){
-	let soundButton = document.getElementById("soundButton");
-	if(chipEight.hasSound){
-		chipEight.hasSound = false;
-		soundButton.innerHTML = "Sound: Off"
-	} else {
-		chipEight.hasSound = true;
-		soundButton.innerHTML = "Sound: On"
-	}
+function toggleSound() {
+  let soundButton = document.getElementById("soundButton");
+  if (hasSound) {
+    hasSound = false;
+    soundButton.innerHTML = "Sound: Off";
+  } else {
+    hasSound = true;
+    soundButton.innerHTML = "Sound: On";
+  }
 }

@@ -21,12 +21,7 @@ class Chip8 {
 
     this.spriteSetup();
 
-    this.SP[0] = 0;
-    this.prevTime = 0;
-	this.hasSound = false;  
-    this.soundPlayed = false;
-	this.continueStep = true;
-	this.hasExited = false;
+    this.SP[0] = -1;
   }
 
   spriteSetup() {
@@ -130,7 +125,7 @@ class Chip8 {
   getOpcode() {
     let opcode = new Uint16Array(1);
     let i = chipEight.PC[0];
-    
+
     opcode[0] = (chipEight.memory[i] << 8) + chipEight.memory[i + 1];
 
     return opcode[0];
@@ -140,123 +135,132 @@ class Chip8 {
   // http://devernay.free.fr/hacks/chip8/C8TECH10.HTM
   // VF is V[15]
   executeOpcode(opcode) {
-	this.continueStep = true;
-
-    // clears display
     if (opcode == 0x00e0) {
+      // 00E0 - CLS
+      // clears display
+
       for (let i = 0; i < 64 * 32; i++) {
         this.framebuffer[i] = false;
       }
-    }
+    } else if (opcode == 0x00ee) {
+      // 00EE - RET
+      // return from subroutine
 
-    if (opcode == 0x00ee) {
       this.PC[0] = this.stack[this.SP[0]];
       this.SP[0] -= 1;
-    }
+    } else if ((opcode & 0xf000) == 0x1000) {
+      // 1nnn - JP addr
+      // jump to nnn address
 
-    if ((opcode & 0xf000) == 0x1000) {
       let nnn = opcode & 0x0fff;
 
-      this.PC[0] = nnn;
-	  this.continueStep = false;
-    }
+      this.PC[0] = nnn - 2;
+    } else if ((opcode & 0xf000) == 0x2000) {
+      // 2nnn - CALL addr
+      // call subroutine at nnn
 
-    if ((opcode & 0xf000) == 0x2000) {
       this.SP[0] += 1;
       this.stack[this.SP[0]] = this.PC[0];
 
       let nnn = opcode & 0x0fff;
-      this.PC[0] = nnn;
-	  this.continueStep = false;
-    }
+      this.PC[0] = nnn - 2;
+    } else if ((opcode & 0xf000) == 0x3000) {
+      // 3xkk - SE Vx, byte
+      // skip if Vx equals kk
 
-    if ((opcode & 0xf000) == 0x3000) {
       let x = (opcode & 0x0f00) >> 8;
       let kk = opcode & 0x00ff;
 
       if (this.V[x] == kk) {
         this.PC[0] += 2;
       }
-    }
+    } else if ((opcode & 0xf000) == 0x4000) {
+      // 4xkk - SNE Vx, byte
+      // skip if Vx not equal kk
 
-    if ((opcode & 0xf000) == 0x4000) {
       let x = (opcode & 0x0f00) >> 8;
       let kk = opcode & 0x00ff;
 
       if (this.V[x] != kk) {
         this.PC[0] += 2;
       }
-    }
+    } else if ((opcode & 0xf00f) == 0x5000) {
+      // 5xy0 - SE Vx, Vy
+      // skip if Vx equal Vy
 
-    if ((opcode & 0xf00f) == 0x5000) {
       let x = (opcode & 0x0f00) >> 8;
       let y = (opcode & 0x00f0) >> 4;
 
       if (this.V[x] == this.V[y]) {
         this.PC[0] += 2;
       }
-    }
+    } else if ((opcode & 0xf000) == 0x6000) {
+      // 6xkk - LD Vx, byte
+      // set Vx = kk
 
-    if ((opcode & 0xf000) == 0x6000) {
       let x = (opcode & 0x0f00) >> 8;
       let kk = opcode & 0x00ff;
 
       this.V[x] = kk;
-    }
+    } else if ((opcode & 0xf000) == 0x7000) {
+      // 7xkk - ADD Vx, byte
+      // Set Vx = Vx + kk
 
-    if ((opcode & 0xf000) == 0x7000) {
       let x = (opcode & 0x0f00) >> 8;
       let kk = opcode & 0x00ff;
 
-	  if(this.V[x] + kk > 255){
-		this.V[x] = this.V[x] + kk - 256;
-	  } else {
-        this.V[x] = this.V[x] + kk;
-	  }
-    }
-
-    if ((opcode & 0xf000) == 0x8000) {
+      this.V[x] = this.V[x] + kk;
+    } else if ((opcode & 0xf000) == 0x8000) {
       let x = (opcode & 0x0f00) >> 8;
       let y = (opcode & 0x00f0) >> 4;
       let fourthVal = opcode & 0x000f;
 
       if (fourthVal == 0x0) {
+        // 8xy0 - LD Vx, Vy
+        // Set Vx = Vy
+
         this.V[x] = this.V[y];
-      }
+      } else if (fourthVal == 0x1) {
+        // 8xy1 - OR Vx, Vy
+        // Set Vx = Vx OR Vy
 
-      if (fourthVal == 0x1) {
         this.V[x] = this.V[x] | this.V[y];
-      }
+      } else if (fourthVal == 0x2) {
+        // 8xy2 - AND Vx, Vy
+        // Set Vx = Vx AND Vy
 
-      if (fourthVal == 0x2) {
         this.V[x] = this.V[x] & this.V[y];
-      }
+      } else if (fourthVal == 0x3) {
+        // 8xy3 - XOR Vx, Vy
+        // Set Vx = Vx XOR Vy
 
-      if (fourthVal == 0x3) {
         this.V[x] = this.V[x] ^ this.V[y];
-      }
+      } else if (fourthVal == 0x4) {
+        // 8xy4 - ADD Vx, Vy
+        // Set Vx = Vx + Vy, set VF = carry
 
-      if (fourthVal == 0x4) {
         if (this.V[x] + this.V[y] > 255) {
           this.V[15] = 1;
-          this.V[x] = this.V[x] + this.V[y] - 256;
         } else {
           this.V[15] = 0;
-          this.V[x] = this.V[x] + this.V[y];
         }
-      }
 
-      if (fourthVal == 0x5) {
+        this.V[x] = this.V[x] + this.V[y];
+      } else if (fourthVal == 0x5) {
+        // 8xy5 - SUB Vx, Vy
+        // Set Vx = Vx - Vy, set VF = NOT borrow
+
         if (this.V[x] >= this.V[y]) {
           this.V[15] = 1;
-		  this.V[x] = this.V[x] - this.V[y];
         } else {
           this.V[15] = 0;
-		  this.V[x] = this.V[x] - this.V[y] + 256;
         }
-      }
 
-      if (fourthVal == 0x6) {
+        this.V[x] = this.V[x] - this.V[y];
+      } else if (fourthVal == 0x6) {
+        // 8xy6 - SHR Vx {, Vy}
+        // Vx = Vx / 2, set VF if odd or last bit is 1
+
         if (this.V[x] & 1) {
           this.V[15] = 1;
         } else {
@@ -264,19 +268,21 @@ class Chip8 {
         }
 
         this.V[x] = this.V[x] >> 1;
-      }
+      } else if (fourthVal == 0x7) {
+        // 8xy7 - SUBN Vx, Vy
+        // Set Vx = Vy - Vx, set VF = NOT borrow
 
-      if (fourthVal == 0x7) {
         if (this.V[y] >= this.V[x]) {
           this.V[15] = 1;
-          this.V[x] = this.V[y] - this.V[x];
         } else {
           this.V[15] = 0;
-		  this.V[x] = this.V[y] - this.V[x] + 256; 
         }
-      }
 
-      if (fourthVal == 0xe) {
+        this.V[x] = this.V[y] - this.V[x];
+      } else if (fourthVal == 0xe) {
+        // 8xyE - SHL Vx {, Vy}
+        // Vx = Vx * 2, set VF if first bit, highest value, is 1
+
         if (this.V[x] >> 7) {
           this.V[15] = 1;
         } else {
@@ -285,38 +291,42 @@ class Chip8 {
 
         this.V[x] = (this.V[x] << 1) & 0xffff;
       }
-    }
+    } else if ((opcode & 0xf00f) == 0x9000) {
+      // 9xy0 - SNE Vx, Vy
+      // skip if Vx not equal Vy
 
-    if ((opcode & 0xf00f) == 0x9000) {
       let x = (opcode & 0x0f00) >> 8;
       let y = (opcode & 0x00f0) >> 4;
 
       if (this.V[x] != this.V[y]) {
         this.PC[0] += 2;
       }
-    }
+    } else if ((opcode & 0xf000) == 0xa000) {
+      // Annn - LD I, addr
+      // Set I = nnn
 
-    if ((opcode & 0xf000) == 0xa000) {
       let nnn = opcode & 0x0fff;
 
       this.I[0] = nnn;
-    }
+    } else if ((opcode & 0xf000) == 0xb000) {
+      // Bnnn - JP V0, addr
+      // Jump to address nnn + V0
 
-    if ((opcode & 0xf000) == 0xb000) {
       let nnn = opcode & 0x0fff;
 
-      this.PC[0] = nnn + this.V[0];
-	  this.continueStep = false;
-    }
+      this.PC[0] = nnn + this.V[0] - 2;
+    } else if ((opcode & 0xf000) == 0xc000) {
+      // Cxkk - RND Vx, byte
+      // Set Vx = random byte AND kk
 
-    if ((opcode & 0xf000) == 0xc000) {
       let x = (opcode & 0x0f00) >> 8;
       let kk = opcode & 0x00ff;
 
       this.V[x] = Math.floor(Math.random() * 256) & kk;
-    }
+    } else if ((opcode & 0xf000) == 0xd000) {
+      // Dxyn - DRW Vx, Vy, nibble
+      // Display n-byte sprite starting at (Vx, Vy), set VF = collision
 
-    if ((opcode & 0xf000) == 0xd000) {
       let x = (opcode & 0x0f00) >> 8;
       let y = (opcode & 0x00f0) >> 4;
       let n = opcode & 0x000f;
@@ -333,92 +343,110 @@ class Chip8 {
           let tempRow = (row + i) % 32;
           let tempCol = (col + j) % 64;
 
-		  let tempPixel = this.framebuffer[tempRow * 64 + tempCol];
+          let tempPixel = this.framebuffer[tempRow * 64 + tempCol];
           this.framebuffer[tempRow * 64 + tempCol] ^= bit;
-          if (tempPixel == true && this.framebuffer[tempRow * 64 + tempCol] == 0) {
+          
+		  if (
+            tempPixel == true &&
+            this.framebuffer[tempRow * 64 + tempCol] == 0
+          ) {
             this.V[15] = 1;
           }
         }
       }
-    }
+    } else if ((opcode & 0xf0ff) == 0xe09e) {
+      // Ex9E - SKP Vx
+      // skip if key press is Vx
 
-    if ((opcode & 0xf0ff) == 0xe09e) {
       let x = (opcode & 0x0f00) >> 8;
 
       if (this.V[x] == this.key) {
         chipEight.PC[0] += 2;
       }
-    }
+    } else if ((opcode & 0xf0ff) == 0xe0a1) {
+      // ExA1 - SKNP Vx
+      // skip if key press is not Vx
 
-    if ((opcode & 0xf0ff) == 0xe0a1) {
       let x = (opcode & 0x0f00) >> 8;
 
       if (this.V[x] != this.key) {
         chipEight.PC[0] += 2;
       }
-    }
+    } else if ((opcode & 0xf0ff) == 0xf007) {
+      // Fx07 - LD Vx, DT
+      // Set Vx = delay timer
 
-    if ((opcode & 0xf0ff) == 0xf007) {
       let x = (opcode & 0x0f00) >> 8;
 
       this.V[x] = this.delay_reg[0];
-    }
+    } else if ((opcode & 0xf0ff) == 0xf00a) {
+      // Fx0A - LD Vx, K
+      // Wait for key press
 
-    if ((opcode & 0xf0ff) == 0xf00a) {
       let x = (opcode & 0x0f00) >> 8;
-      
-	  if(this.key){		
-		this.V[x] = this.key;
-	  }else{
-        this.continueStep = false;
-	  }
-    }
 
-    if ((opcode & 0xf0ff) == 0xf015) {
+      if (this.key) {
+        this.V[x] = this.key;
+      } else {
+        this.PC[0] -= 2;
+      }
+    } else if ((opcode & 0xf0ff) == 0xf015) {
+      // Fx15 - LD DT, Vx
+      // Set delay timer = Vx
+
       let x = (opcode & 0x0f00) >> 8;
 
       this.delay_reg[0] = this.V[x];
-    }
+    } else if ((opcode & 0xf0ff) == 0xf018) {
+      // Fx18 - LD ST, Vx
+      // Set sound timer = Vx
 
-    if ((opcode & 0xf0ff) == 0xf018) {
       let x = (opcode & 0x0f00) >> 8;
 
       this.sound_reg[0] = this.V[x];
-    }
+    } else if ((opcode & 0xf0ff) == 0xf01e) {
+      // Fx1E - ADD I, Vx
+      // Set I = I + Vx
 
-    if ((opcode & 0xf0ff) == 0xf01e) {
       let x = (opcode & 0x0f00) >> 8;
 
       this.I[0] = this.I[0] + this.V[x];
-    }
+    } else if ((opcode & 0xf0ff) == 0xf029) {
+      // Fx29 - LD F, Vx
+      // Set I = location of sprite digit Vx
 
-    if ((opcode & 0xf0ff) == 0xf029) {
       let x = (opcode & 0x0f00) >> 8;
-      this.I[0] = this.V[x] * 5;
-    }
 
-    if ((opcode & 0xf0ff) == 0xf033) {
+      this.I[0] = this.V[x] * 5;
+    } else if ((opcode & 0xf0ff) == 0xf033) {
+      // Fx33 - LD B, Vx
+      // Store BCD of Vx in memory at I, I+1, I+2
+
       let x = (opcode & 0x0f00) >> 8;
 
       this.memory[this.I[0]] = Math.floor(this.V[x] / 100) % 10;
       this.memory[this.I[0] + 1] = Math.floor(this.V[x] / 10) % 10;
       this.memory[this.I[0] + 2] = this.V[x] % 10;
-    }
+    } else if ((opcode & 0xf0ff) == 0xf055) {
+      // Fx55 - LD [I], Vx
+      // Store registers V0 through Vx in memory at I
 
-    if ((opcode & 0xf0ff) == 0xf055) {
       let x = (opcode & 0x0f00) >> 8;
 
       for (let i = 0; i <= x; i++) {
         this.memory[this.I[0] + i] = this.V[i];
       }
-    }
+    } else if ((opcode & 0xf0ff) == 0xf065) {
+      // Fx65 - LD Vx, [I]
+      // Read registers V0 through Vx from memory at I
 
-    if ((opcode & 0xf0ff) == 0xf065) {
       let x = (opcode & 0x0f00) >> 8;
 
       for (let i = 0; i <= x; i++) {
         this.V[i] = this.memory[this.I[0] + i];
       }
     }
+
+    this.PC[0] += 2;
   }
 }
