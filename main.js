@@ -13,10 +13,10 @@ let ctx = canvas.getContext("2d", { alpha: false });
 let imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
 let data = imageData.data;
 
-let hasExited = false;
-let prevTime = 0;
-let hasSound = false;
-let soundPlayed = false;
+let hasExited = false; // Use to exit when switching roms
+let prevTime = 0; // Use to count time
+let hasSound = false; // Sound toggle
+let soundPlayed = false; // play sound once for a period of time
 
 // Function to set indiviual pixels
 // Data store color values in one contigous array
