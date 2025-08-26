@@ -3,20 +3,23 @@ let chipEight = new Chip8();
 let canvas = document.getElementById("myCanvas");
 
 // one pixel is actually scale * scale pixels
-let scale = 10;
+const scale = 10;
 const canvasWidth = 64 * scale;
 const canvasHeight = 32 * scale;
 canvas.width = canvasWidth;
 canvas.height = canvasHeight;
 
-let ctx = canvas.getContext("2d", { alpha: false });
-let imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
-let data = imageData.data;
+let ctx = canvas.getContext("2d");
+ctx.fillStyle = "black";
+ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+let imageData = ctx.getImageData(0,0, canvasWidth, canvasHeight);
 
 let hasExited = false; // Use to exit when switching roms
 let prevTime = 0; // Use to count time
 let hasSound = false; // Sound toggle
 let soundPlayed = false; // play sound once for a period of time
+
+let buf = new Uint32Array(imageData.data.buffer);
 
 // Function to set indiviual pixels
 // Data store color values in one contigous array
@@ -28,9 +31,9 @@ function setPixel(place, scale, colorValue) {
 
   for (let i = 0; i < scale; i++) {
     for (let j = 0; j < scale; j++) {
-      data[index] = colorValue;
-      data[index + 1] = colorValue;
-      data[index + 2] = colorValue;
+      imageData.data[index] = colorValue;
+      imageData.data[index + 1] = colorValue;
+      imageData.data[index + 2] = colorValue;
       index += 4;
     }
     index += adjustValue;
@@ -38,6 +41,11 @@ function setPixel(place, scale, colorValue) {
 }
 
 function updateDisplay() {
+  if(chipEight.hasDisplayUpdate == false){
+    return;
+  }
+  chipEight.hasDisplayUpdate = false;
+
   for (let i = 0; i < 64 * 32; i++) {
     if (chipEight.framebuffer[i]) {
       setPixel(i, 10, 128);
@@ -81,10 +89,12 @@ async function test() {
     let opcode = chipEight.getOpcode();
     chipEight.executeOpcode(opcode);
 
-    updateDisplay();
-    await wait(1);
-
     timer();
+	if(chipEight.hasDisplayUpdate){
+	  requestAnimationFrame(updateDisplay);
+	}
+
+	await wait(2);
   }
 }
 
@@ -148,8 +158,6 @@ async function loadPong(button) {
     chipEight.memory[0x0200 + i] = romData[i];
   }
 
-  await wait(1);
-
   hasExited = false;
   test();
 }
@@ -164,8 +172,6 @@ async function loadTetris(button) {
   for (let i = 0; i < romData.length; i++) {
     chipEight.memory[0x0200 + i] = romData[i];
   }
-
-  await wait(1);
 
   hasExited = false;
   test();

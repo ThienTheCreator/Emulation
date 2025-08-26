@@ -16,6 +16,7 @@ class Chip8 {
     this.sound_reg = new Uint8Array(1); // Sound timer
 
     this.framebuffer = Array(64 * 32).fill(false);
+    this.hasDisplayUpdate = false;
 
     this.key = "";
 
@@ -141,6 +142,7 @@ class Chip8 {
 
       for (let i = 0; i < 64 * 32; i++) {
         this.framebuffer[i] = false;
+		this.hasDisplayUpdate = true;
       }
     } else if (opcode == 0x00ee) {
       // 00EE - RET
@@ -354,6 +356,9 @@ class Chip8 {
           }
         }
       }
+
+      this.hasDisplayUpdate = true;
+	
     } else if ((opcode & 0xf0ff) == 0xe09e) {
       // Ex9E - SKP Vx
       // skip if key press is Vx
